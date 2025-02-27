@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+jupyter
+sqlite3
+xml.etree.ElementTree
+lxml
+datetime
+os
