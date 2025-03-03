@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XML Data Vergelijkingsdashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f4f4f4;
+      margin: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    .card {
+      background: #fafafa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+    }
+    select {
+      display: block;
+      width: 80%;
+      margin: 0 auto 15px auto;
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .summary {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto 40px auto;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>XML Data Vergelijkingsdashboard</h1>
+    
+    <!-- Dropdown en samenvatting -->
+    <div class="card">
+      <select id="attributeSelect"></select>
+      <div class="summary" id="summaryDisplay"></div>
+    </div>
+    
+    <!-- Bar chart voor attribuut vergelijking -->
+    <h2>Attribuut Vergelijking</h2>
+    <canvas id="comparisonChart" width="800" height="400"></canvas>
+    
+    <!-- Tijdlijn chart -->
+    <h2>Tijdlijn - Pre vs Post</h2>
+    <canvas id="timelineChart" width="800" height="400"></canvas>
+  </div>
+  
+  <script>
+    let csvData = [];          // Gegevens van de attribuut CSV
+    let timelineCSVData = [];  // Gegevens van de tijdlijn CSV
+    let chartInstance = null;      // Chart.js instance voor de bar chart
+    let timelineChartInstance = null; // Chart.js instance voor de tijdlijn chart
+
+    // Update dashboard voor een geselecteerd attribuut
+    function updateDashboard(selectedAttribute) {
+      const row = csvData.find(item => {
+        const attrib = item["attribuut"] ? item["attribuut"].trim() : "";
+        return attrib === selectedAttribute;
+      });
+      if (!row) {
+        console.error("Geselecteerd attribuut niet gevonden:", selectedAttribute);
+        return;
+      }
+      const preValue = Number(row["Pre Triply import"]);
+      const postValue = Number(row["Post Triply import"]);
+      
+      document.getElementById('summaryDisplay').innerHTML = `
+        <p>Geselecteerd attribuut: <strong>${selectedAttribute}</strong></p>
+        <p>Pre Triply import: <strong>${preValue}</strong> | Post Triply import: <strong>${postValue}</strong></p>
+      `;
+      
+      if (chartInstance) {
+        chartInstance.data.datasets[0].label = selectedAttribute;
+        chartInstance.data.datasets[0].data = [preValue, postValue];
+        chartInstance.options.plugins.title.text = `Vergelijking voor ${selectedAttribute}`;
+        chartInstance.update();
+      } else {
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Pre Triply import', 'Post Triply import'],
+            datasets: [{
+              label: selectedAttribute,
+              data: [preValue, postValue],
+              backgroundColor: [
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 99, 132, 0.6)'
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: `Vergelijking voor ${selectedAttribute}`
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Update tijdlijn chart voor het geselecteerde attribuut
+    function updateTimelineChart(selectedAttribute) {
+      const filteredData = timelineCSVData.filter(item => {
+        const attrib = item["attribuut"] ? item["attribuut"].trim() : "";
+        return attrib === selectedAttribute;
+      });
+      filteredData.sort((a, b) => new Date(a["datum"]) - new Date(b["datum"]));
+      const timelineLabels = [];
+      const timelinePreValues = [];
+      const timelinePostValues = [];
+      filteredData.forEach(row => {
+        if (row["datum"]) {
+          timelineLabels.push(row["datum"].trim());
+          timelinePreValues.push(Number(row["Pre Triply import"]));
+          timelinePostValues.push(Number(row["Post Triply import"]));
+        }
+      });
+      
+      if (timelineChartInstance) {
+        timelineChartInstance.data.labels = timelineLabels;
+        timelineChartInstance.data.datasets[0].data = timelinePreValues;
+        timelineChartInstance.data.datasets[1].data = timelinePostValues;
+        timelineChartInstance.options.plugins.title.text = `Tijdlijn ${selectedAttribute} - Pre vs Post`;
+        timelineChartInstance.update();
+      } else {
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+        timelineChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: timelineLabels,
+            datasets: [
+              {
+                label: 'Pre Triply import',
+                data: timelinePreValues,
+                fill: false,
+                borderColor: 'rgba(54, 162, 235, 0.8)',
+                tension: 0.1
+              },
+              {
+                label: 'Post Triply import',
+                data: timelinePostValues,
+                fill: false,
+                borderColor: 'rgba(255, 99, 132, 0.8)',
+                tension: 0.1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: `Tijdlijn ${selectedAttribute} - Pre vs Post`
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Laad attribuut CSV en vul de dropdown
+    function loadAttributeCSV() {
+      Papa.parse('csv/vergelijkingen_telling.csv', {
+        download: true,
+        header: true,
+        complete: function(results) {
+          csvData = results.data;
+          console.log("Attribuut CSV data:", csvData);
+          const select = document.getElementById('attributeSelect');
+          select.innerHTML = '';
+          csvData.forEach(row => {
+            let attrib = row["attribuut"] ? row["attribuut"].trim() : "";
+            if (attrib) {
+              const option = document.createElement('option');
+              option.value = attrib;
+              option.textContent = attrib;
+              select.appendChild(option);
+            }
+          });
+          if (select.options.length > 0) {
+            const defaultAttribute = select.options[0].value;
+            select.value = defaultAttribute;
+            updateDashboard(defaultAttribute);
+            updateTimelineChart(defaultAttribute);
+          }
+          select.addEventListener('change', function() {
+            updateDashboard(this.value);
+            updateTimelineChart(this.value);
+          });
+        },
+        error: function(err) {
+          console.error("Fout bij laden attribuut CSV:", err);
+        }
+      });
+    }
+
+    // Laad tijdlijn CSV en sla de data op
+    function loadTimelineCSV() {
+      Papa.parse('csv/dataset_tellingen_tijdlijn.csv', {
+        download: true,
+        header: true,
+        complete: function(results) {
+          timelineCSVData = results.data;
+          console.log("Tijdlijn CSV data:", timelineCSVData);
+          const select = document.getElementById('attributeSelect');
+          if (select && select.value) {
+            updateTimelineChart(select.value);
+          }
+        },
+        error: function(err) {
+          console.error("Fout bij laden tijdlijn CSV:", err);
+        }
+      });
+    }
+
+    // Laad beide CSV bestanden bij het laden van de pagina
+    window.onload = function() {
+      loadAttributeCSV();
+      loadTimelineCSV();
+    }
+  </script>
+</body>
+</html>
