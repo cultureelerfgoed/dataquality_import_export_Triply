@@ -1,4 +1,6 @@
-# Datakwaliteit Dashboard: [Vergelijking tussen de xml file pre en post import in TriplyDB](https://cultureelerfgoed.github.io/dataquality_import_export_Triply/).
+# Datakwaliteit Dashboard: Vergelijking tussen de xml file pre en post import in TriplyDB.
+
+### Zie hier de [Dashboard](https://cultureelerfgoed.github.io/dataquality_import_export_Triply/)
 
 Dit prototype is ontwikkeld om op een interactive manier datakwaliteit in kaart te brengen en vragen vanuit de bussiness te beantwoorden. Er is zowel gekeken naar de benodigheden om een dergelijke vergelijking te kunnen maken.
 
