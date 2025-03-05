@@ -5,15 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>XML Data Vergelijkingsdashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #f4f4f4;
       margin: 20px;
     }
+    /* De container neemt bijna de gehele breedte van de pagina in */
     .container {
-      max-width: 900px;
+      width: 98%;
+      max-width: 100%;
       margin: 0 auto;
       background: #fff;
       padding: 20px;
@@ -45,11 +49,49 @@
       font-size: 16px;
       margin-bottom: 20px;
     }
-    canvas {
-      display: block;
-      margin: 0 auto 40px auto;
-      max-width: 100%;
+    /* Topgrafieken: vaste hoogte en border */
+    .top-plot {
+      border: 1px solid #ccc;
+      height: 400px;
     }
+    /* Flexbox: de bovenste rij met 2 kolommen */
+    .row {
+      display: flex;
+      flex-wrap: nowrap;
+      margin: 0 -15px;
+    }
+    /* Eerste kolom 40%, tweede kolom 60% */
+    .col-first {
+      flex: 0 0 45%;
+      padding: 0 10px;
+      margin-bottom: 10px;
+    }
+    .col-second {
+      flex: 0 0 50%;
+      padding: 0 10px;
+    }
+    /* Tijdlijn canvas: 80% breed, vaste hoogte, gecentreerd */
+    #timelineChart {
+      border: 1px solid #ccc;
+      height: 100px;
+      width: 80%;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .download-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #0d4074;
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 16px;
+}
+.download-button:hover {
+  background-color: #2d5985;
+}
+
   </style>
 </head>
 <body>
@@ -62,19 +104,63 @@
       <div class="summary" id="summaryDisplay"></div>
     </div>
     
-    <!-- Bar chart voor attribuut vergelijking -->
-    <h2>Attribuut Vergelijking</h2>
-    <canvas id="comparisonChart" width="800" height="400"></canvas>
+    <!-- Rij met twee kolommen: Chart.js grafiek en Plotly bar chart -->
+    <div class="row">
+      <div class="col-first">
+        <h2>Attributen Vergelijking</h2>
+        <div style="text-align: center;">
+          <p>tussen test_archis.xml en ldv_cho.xml</p>
+        </div>
+        <canvas id="comparisonChart" class="top-plot" width="800" height="400"></canvas>
+        <div style="text-align: right;">
+          <a href="csv/dataset_tellingen_tijdlijn.csv" download class="download-button" data-tooltip="Download Tellingen en Tijdlijn Data">
+            <!-- Inline SVG download icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="20" height="20" viewBox="0 0 16 16">
+              <path d="M.5 9.9V13a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9.9a.5.5 0 0 0-1 0V13H1.5V9.9a.5.5 0 0 0-1 0z"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 1 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div class="col-second">
+        <h2>Verschillen in typeCho</h2>
+        <div style="text-align: center;">
+          <p>tussen test_archis.xml en ldv_cho.xml</p>
+        </div>
+        <div id="plotlyBarChart" class="top-plot"></div>
+        <!-- Download button  -->
+        <div style="text-align: right;">
+          <a href="csv/verschillen_vergelijking_choIds.zip" download class="download-button" data-tooltip="Download Verschillen Data">
+            <!-- Inline SVG download icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="20" height="20" viewBox="0 0 16 16">
+              <path d="M.5 9.9V13a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9.9a.5.5 0 0 0-1 0V13H1.5V9.9a.5.5 0 0 0-1 0z"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 1 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
     
-    <!-- Tijdlijn chart -->
+    <!-- Tijdlijn chart onder de rij -->
     <h2>Tijdlijn - Pre vs Post</h2>
-    <canvas id="timelineChart" width="800" height="400"></canvas>
+    <canvas id="timelineChart"></canvas>
+    <div style="text-align: right;">
+      <a href="csv/dataset_tellingen_tijdlijn.csv" download class="download-button" data-tooltip="Download Verschillen Data">
+        <!-- Inline SVG download icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="20" height="20" viewBox="0 0 16 16">
+          <path d="M.5 9.9V13a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9.9a.5.5 0 0 0-1 0V13H1.5V9.9a.5.5 0 0 0-1 0z"/>
+          <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 1 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+        </svg>
+      </a>
+    </div>
+   
   </div>
+  
   
   <script>
     let csvData = [];          // Gegevens van de attribuut CSV
     let timelineCSVData = [];  // Gegevens van de tijdlijn CSV
-    let chartInstance = null;      // Chart.js instance voor de bar chart
+    let chartInstance = null;      // Chart.js instance voor de attribuutvergelijking
     let timelineChartInstance = null; // Chart.js instance voor de tijdlijn chart
 
     // Update dashboard voor een geselecteerd attribuut
@@ -95,46 +181,45 @@
         <p>Pre Triply import: <strong>${preValue}</strong> | Post Triply import: <strong>${postValue}</strong></p>
       `;
       
+      // Vernietig oude Chart.js instance als deze bestaat
       if (chartInstance) {
-        chartInstance.data.datasets[0].label = selectedAttribute;
-        chartInstance.data.datasets[0].data = [preValue, postValue];
-        chartInstance.options.plugins.title.text = `Vergelijking voor ${selectedAttribute}`;
-        chartInstance.update();
-      } else {
-        const ctx = document.getElementById('comparisonChart').getContext('2d');
-        chartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Pre Triply import', 'Post Triply import'],
-            datasets: [{
-              label: selectedAttribute,
-              data: [preValue, postValue],
-              backgroundColor: [
-                'rgba(54, 162, 235, 0.6)',
-                'rgba(255, 99, 132, 0.6)'
-              ]
-            }]
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+      
+      const ctx = document.getElementById('comparisonChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Pre Triply import', 'Post Triply import'],
+          datasets: [{
+            label: selectedAttribute,
+            data: [preValue, postValue],
+            backgroundColor: [
+              'rgba(13,64,116,255)',
+              'rgba(255,183,10,255)'
+            ]
+          }]
+        },
+        options: {
+          responsive: false,  // Gebruik vaste afmetingen via CSS
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 }
+            }
           },
-          options: {
-            responsive: true,
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { precision: 0 }
-              }
-            },
-            plugins: {
-              title: {
-                display: true,
-                text: `Vergelijking voor ${selectedAttribute}`
-              }
+          plugins: {
+            title: {
+              display: true,
+              text: `Vergelijking voor ${selectedAttribute}`
             }
           }
-        });
-      }
+        }
+      });
     }
 
-    // Update tijdlijn chart voor het geselecteerde attribuut
+    // Update de tijdlijn chart voor het geselecteerde attribuut
     function updateTimelineChart(selectedAttribute) {
       const filteredData = timelineCSVData.filter(item => {
         const attrib = item["attribuut"] ? item["attribuut"].trim() : "";
@@ -169,20 +254,21 @@
                 label: 'Pre Triply import',
                 data: timelinePreValues,
                 fill: false,
-                borderColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(13,64,116,255)',
                 tension: 0.1
               },
               {
                 label: 'Post Triply import',
                 data: timelinePostValues,
                 fill: false,
-                borderColor: 'rgba(255, 99, 132, 0.8)',
+                borderColor: 'rgba(255,183,10,255)',
                 tension: 0.1
               }
             ]
           },
           options: {
-            responsive: true,
+            responsive: false,  // Vaste afmetingen via CSS
+            maintainAspectRatio: false,
             scales: {
               y: {
                 beginAtZero: true,
@@ -255,10 +341,72 @@
       });
     }
 
-    // Laad beide CSV bestanden bij het laden van de pagina
+    // Laad en verwerk de CSV met verschillen in choId's en genereer de Plotly grafiek
+    function loadUniqueChoIdData() {
+    fetch('csv/verschillen_vergelijking_choIds.zip')
+        .then(response => response.arrayBuffer())
+        .then(JSZip.loadAsync)
+        .then(zip => zip.file('verschillen_vergelijking_choIds.csv').async('string'))
+        .then(csvData => {
+            // Parse the unzipped CSV string
+            Papa.parse(csvData, {
+                header: true,
+                complete: function(results) {
+                    const data = results.data;
+                    console.log("Unieke choId CSV data:", data);
+                    const typeCounts = {};
+                    data.forEach(row => {
+                        const typeCho = row['typeCho'] ? row['typeCho'].trim() : '';
+                        const source = row['source'] ? row['source'].trim() : '';
+                        if (typeCho && source) {
+                            if (!typeCounts[typeCho]) {
+                                typeCounts[typeCho] = { 'test_archis.xml': 0, 'ldv_cho.xml': 0 };
+                            }
+                            typeCounts[typeCho][source]++;
+                        }
+                    });
+                    const typeChoCategories = Object.keys(typeCounts);
+                    const testArchisCounts = typeChoCategories.map(type => typeCounts[type]['test_archis.xml']);
+                    const ldvChoCounts = typeChoCategories.map(type => typeCounts[type]['ldv_cho.xml']);
+                    const plotlyData = [
+                        {
+                            x: typeChoCategories,
+                            y: testArchisCounts,
+                            name: 'preTriply (test_archis.xml)',
+                            type: 'bar',
+                            marker: { color: 'rgba(13,64,116,255)' }
+                        },
+                        {
+                            x: typeChoCategories,
+                            y: ldvChoCounts,
+                            name: 'postTriply (ldv_cho.xml)',
+                            type: 'bar',
+                            marker: { color: 'rgba(255,183,10,255)' }
+                        }
+                    ];
+                    const layout = {
+                        barmode: 'stack',
+                        // title: 'Verschillen in aantal ChoId per typeCho tussen test_archis.xml (pre Triply) en ldv_cho.xml (post Triply)',
+                        xaxis: { title: 'typeCho' },
+                        yaxis: { title: 'Aantal unieke choId' },
+                        legend: { title: { text: 'Bestanden' } },
+                        height: 400,
+                        margin: { l: 50, r: 50, t: 50, b: 100 }
+                    };
+                    Plotly.newPlot('plotlyBarChart', plotlyData, layout);
+                },
+                error: function(err) {
+                    console.error("Fout bij het parsen van de CSV data:", err);
+                }
+            });
+        })
+        .catch(error => console.error("Fout bij het laden of uitpakken van de CSV:", error));
+}
+
     window.onload = function() {
       loadAttributeCSV();
       loadTimelineCSV();
+      loadUniqueChoIdData();
     }
   </script>
 </body>
