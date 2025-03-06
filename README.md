@@ -31,6 +31,8 @@ id7-->id8(script: xml-check.ipynb)
 click id8 "https://nbviewer.org/github/cultureelerfgoed/dataquality_import_export_Triply/blob/main/xml-check.ipynb?flush_cache=true"
 id4-->id8
 id8-->id9(dataset_tellingen_tijdlijn.csv)
+id8-->id11(verschillen_vergelijking_choIds.zip)
+id11-->id10
 id9-->id10(Dashboard)
 
 ```
